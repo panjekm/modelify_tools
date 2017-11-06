@@ -1,0 +1,15 @@
+<!-- Extrinsics from calibration of Primesense camera with Optitrack markers
+-->
+<launch>
+  <arg name="camera" default="camera" />
+  <arg name="optitrack_object_name" default="rgbd_camera" />
+
+  <arg name="primesense_extrinsics" value="-0.026601797787977 0.000225188541505 -0.001461779263117 -0.000970005937180 -0.003097986837383 0.005060672979827 0.999981925414169" />
+  <arg name="optitrack_camera" value="-0.0029222977635038777 0.014184743123583062 0.011641944821642533 0.0014860183820424799 -0.72652822064724698 0.68631369758935534 0.033586378991202044" />
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="$(arg camera)_extrinsics_tf"
+    args="$(arg primesense_extrinsics) $(arg camera)_rgb_optical_frame $(arg camera)_depth_optical_frame" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="$(arg camera)_optitrack_camera_tf"
+    args="$(arg optitrack_camera) $(arg optitrack_object_name) $(arg camera)_rgb_optical_frame" />
+
+</launch>
