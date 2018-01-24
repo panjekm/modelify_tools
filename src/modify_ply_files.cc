@@ -67,12 +67,12 @@ int main(int argc, char** argv) {
   }
 
   // Choose parameters.
-  bool kComputeNormals = true;
+  constexpr bool kComputeNormals = true;
+  constexpr double kNormalRadiusSearch = 0.02;
 
   std::vector<int> indices;
   pcl::removeNaNFromPointCloud(*pointcloud_in, *pointcloud_in, indices);
   if (kComputeNormals) {
-    constexpr double kNormalRadiusSearch = 0.02;
     computeNormals(pointcloud_in, kNormalRadiusSearch, pointcloud_in);
   }
   pcl::removeNaNNormalsFromPointCloud(*pointcloud_in, *pointcloud_in, indices);
