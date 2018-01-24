@@ -10,5 +10,9 @@ cs_add_executable(align_objects
   src/align_objects.cc
 )
 
+cs_add_executable(modify_ply_files
+  src/modify_ply_files.cc
+)
+
 cs_install()
 cs_export()

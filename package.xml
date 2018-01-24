@@ -20,6 +20,6 @@
   <depend>glog_catkin</depend>
   <depend>modelify_common</depend>
   <depend>pcl_catkin</depend>
-  <depend>testing_toolbox</depend>
+
 
 </package>
