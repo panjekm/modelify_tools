@@ -14,12 +14,18 @@
 
   <depend>alignment_toolbox</depend>
   <depend>descriptor_toolbox</depend>
+  <depend>cv_bridge</depend>
   <depend>keypoint_toolbox</depend>
   <depend>eigen_catkin</depend>
   <depend>gflags_catkin</depend>
   <depend>glog_catkin</depend>
   <depend>modelify_common</depend>
   <depend>pcl_catkin</depend>
+  <depend>rosbag</depend>
+  <depend>opencv3_catkin</depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>message_filters</depend>
 
 
 </package>

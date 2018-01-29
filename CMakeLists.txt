@@ -14,5 +14,9 @@ cs_add_executable(modify_ply_files
   src/modify_ply_files.cc
 )
 
+cs_add_executable(project_to_pointcloud
+  src/project_to_pointcloud.cc
+)
+
 cs_install()
 cs_export()
