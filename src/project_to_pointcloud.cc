@@ -13,7 +13,9 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/rgbd.hpp>
 
 #include <modelify/alignment_toolbox/alignment_toolbox.h>
 #include <modelify/common.h>
@@ -63,6 +65,15 @@ void callback(const sensor_msgs::Image::ConstPtr& image_message,
   cv_bridge::CvImagePtr cv_image_rect_reg = cv_bridge::toCvCopy(
       image_rect_reg_message, sensor_msgs::image_encodings::TYPE_32FC1);
 
+  cv::Mat depth_intrinsics =
+      cv::Mat(3, 3, CV_64FC1, const_cast<double*>(&depth_camera_info->K[0]));
+  cv::Mat depth_distortion =
+      cv::Mat(1, 5, CV_64FC1, const_cast<double*>(&depth_camera_info->D[0]));
+  cv::Mat depth_intrinsics_P =
+      cv::Mat(3, 4, CV_64FC1, const_cast<double*>(&depth_camera_info->P[0]));
+  cv::Mat depth_intrinsics_R =
+      cv::Mat(3, 3, CV_64FC1, const_cast<double*>(&depth_camera_info->R[0]));
+
   cv::Mat image = cv_image->image;
   image.convertTo(image, CV_16UC1, 32767);
   cv::imwrite("/home/panjekm/asl_work/camera_calibration_1306030063/image.png",
@@ -71,33 +82,60 @@ void callback(const sensor_msgs::Image::ConstPtr& image_message,
   cv::Mat image_rect = cv_image_rect->image;
   image_rect.convertTo(image_rect, CV_16UC1, 32767);
   cv::imwrite(
-      "/home/panjekm/asl_work/camera_calibration_1306030063/image_rect.png",
+      "/home/panjekm/asl_work/camera_calibration_1306030063/"
+      "image_rect.png",
       image_rect);
 
   cv::Mat image_rect_reg = cv_image_rect_reg->image;
   image_rect_reg.convertTo(image_rect_reg, CV_16UC1, 32767);
   cv::imwrite(
-      "/home/panjekm/asl_work/camera_calibration_1306030063/image_rect_reg.png",
+      "/home/panjekm/asl_work/camera_calibration_1306030063/"
+      "image_rect_reg.png",
       image_rect_reg);
 
-  cv::Mat diff_image = cv_image_rect->image - cv_image_rect_reg->image;
-  diff_image.convertTo(diff_image, CV_16UC1, 32767);
-  cv::imwrite("/home/panjekm/asl_work/camera_calibration_1306030063/diff.png",
-              diff_image);
+  // compute diff
+  // cv::Mat diff_image = cv_image_rect->image - cv_image_rect_reg->image;
+  // diff_image.convertTo(diff_image, CV_16UC1, 32767);
+  // cv::imwrite("/home/panjekm/asl_work/camera_calibration_1306030063/diff.png",
+  //             diff_image);
+
+  // depth-proc's way of dealing with distortion
+  cv::Mat map1, map2;
+  cv::initUndistortRectifyMap(depth_intrinsics, depth_distortion,
+                              depth_intrinsics_R, depth_intrinsics_P,
+                              image.size(), CV_16SC2, map1, map2);
+  cv::Mat depth_undistorted_ros(image.size(), CV_32FC1);
+  cv::remap(cv_image->image, depth_undistorted_ros, map1, map2,
+            cv::INTER_NEAREST, cv::BORDER_CONSTANT,
+            std::numeric_limits<float>::quiet_NaN());
+  cv::Mat depth_undistorted_ros_image;
+  depth_undistorted_ros.convertTo(depth_undistorted_ros_image, CV_16UC1, 32767);
+  cv::imwrite(
+      "/home/panjekm/asl_work/camera_calibration_1306030063/"
+      "image_rect_marko.png",
+      depth_undistorted_ros_image);
+
+  // Tonci's way of dealing with distortion
+  cv::Mat depth_undistorted(image.size(), CV_32FC1);
+  cv::undistort(cv_image->image, depth_undistorted, depth_intrinsics,
+                depth_distortion);
+  depth_undistorted.convertTo(depth_undistorted, CV_16UC1, 32767);
+  cv::imwrite(
+      "/home/panjekm/asl_work/camera_calibration_1306030063/"
+      "image_rect_tonci.png",
+      depth_undistorted);
 
   PointSurfelCloudType::Ptr depth_cloud(new PointSurfelCloudType);
-  cv::Mat depth_intrinsics =
-      cv::Mat(3, 3, CV_64FC1, const_cast<double*>(&depth_camera_info->K[0]));
-  projectDepthTo3D(cv_image_rect->image, depth_intrinsics, depth_cloud);
+  projectDepthTo3D(depth_undistorted_ros, depth_intrinsics, depth_cloud);
 
   PointSurfelCloudType::Ptr depth_cloud_driver(new PointSurfelCloudType);
   pcl::PCLPointCloud2 pcl_pointcloud2;
   pcl_conversions::toPCL(*pointcloud_message, pcl_pointcloud2);
   pcl::fromPCLPointCloud2(pcl_pointcloud2, *depth_cloud_driver);
 
-  visualize(depth_cloud, depth_cloud_driver, "depth cloud");
+  CHECK_EQ(depth_cloud->size(), depth_cloud_driver->size());
 
-  LOG(ERROR) << "Done.";
+  visualize(depth_cloud, depth_cloud_driver, "depth cloud");
 };
 
 int main(int argc, char** argv) {
@@ -108,8 +146,10 @@ int main(int argc, char** argv) {
   Dataset data;
 
   rosbag::Bag bag;
-  bag.open("/home/panjekm/asl_work/camera_calibration_1306030063/capture.bag",
-           rosbag::bagmode::Read);
+  bag.open(
+      "/home/panjekm/asl_work/camera_calibration_1306030063/"
+      "capture.bag",
+      rosbag::bagmode::Read);
 
   std::vector<std::string> topics;
 
