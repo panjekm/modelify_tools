@@ -18,5 +18,9 @@ cs_add_executable(project_to_pointcloud
   src/project_to_pointcloud.cc
 )
 
+cs_add_executable(test_registered_pointclouds
+  src/test_registered_pointclouds.cc
+)
+
 cs_install()
 cs_export()
